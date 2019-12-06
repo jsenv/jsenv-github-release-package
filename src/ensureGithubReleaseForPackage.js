@@ -4,7 +4,7 @@ import { readProjectPackage } from "./internal/readProjectPackage.js"
 import { getGithubRelease } from "./internal/getGithubRelease.js"
 import { createGithubRelease } from "./internal/createGithubRelease.js"
 
-export const ensureGithubReleaseForPackageVersion = async ({ projectDirectoryUrl, logLevel }) => {
+export const ensureGithubReleaseForPackage = async ({ projectDirectoryUrl, logLevel }) => {
   const logger = createLogger({ logLevel })
   logger.debug(
     `autoReleaseOnGithub(${JSON.stringify({ projectDirectoryUrl, logLevel }, null, "  ")})`,
