@@ -1,11 +1,16 @@
 import { createLogger } from "@jsenv/logger"
-import { readProjectPackage } from "../readProjectPackage.js"
-import { getGithubRelease } from "./getGithubRelease.js"
-import { createGithubRelease } from "./createGithubRelease.js"
+import { hasScheme, filePathToUrl } from "./internal/urlUtils.js"
+import { readProjectPackage } from "./internal/readProjectPackage.js"
+import { getGithubRelease } from "./internal/getGithubRelease.js"
+import { createGithubRelease } from "./internal/createGithubRelease.js"
 
 export const ensureGithubReleaseForPackageVersion = async ({ projectDirectoryUrl, logLevel }) => {
   const logger = createLogger({ logLevel })
-  logger.debug(`autoReleaseOnGithub(${JSON.stringify({ projectDirectoryUrl, logLevel }, null, "  ")})`)
+  logger.debug(
+    `autoReleaseOnGithub(${JSON.stringify({ projectDirectoryUrl, logLevel }, null, "  ")})`,
+  )
+
+  projectDirectoryUrl = normalizeProjectDirectoryUrl(projectDirectoryUrl)
 
   const {
     githubToken,
@@ -15,7 +20,7 @@ export const ensureGithubReleaseForPackageVersion = async ({ projectDirectoryUrl
   } = getOptionsFromGithubAction()
 
   logger.debug(`reading project package.json`)
-  const { packageVersion } = await getOptionsFromProjectPackage({ projectPath })
+  const { packageVersion } = await getOptionsFromProjectPackage({ projectDirectoryUrl })
   logger.debug(`${packageVersion} found in package.json`)
 
   logger.debug(`search release for ${packageVersion} on github`)
@@ -53,6 +58,28 @@ export const ensureGithubReleaseForPackageVersion = async ({ projectDirectoryUrl
     })}`,
   )
   return
+}
+
+const normalizeProjectDirectoryUrl = (value) => {
+  if (value instanceof URL) {
+    value = value.href
+  }
+
+  if (typeof value === "string") {
+    const url = hasScheme(value) ? value : filePathToUrl(value)
+
+    if (!url.startsWith("file://")) {
+      throw new Error(`projectDirectoryUrl must starts with file://, received ${value}`)
+    }
+
+    return ensureTrailingSlash(value)
+  }
+
+  throw new TypeError(`projectDirectoryUrl must be a string or an url, received ${value}`)
+}
+
+const ensureTrailingSlash = (string) => {
+  return string.endsWith("/") ? string : `${string}/`
 }
 
 const generateReleaseUrl = ({ githubRepositoryOwner, githubRepositoryName, githubReleaseName }) => {
@@ -93,8 +120,8 @@ const getOptionsFromGithubAction = () => {
   }
 }
 
-const getOptionsFromProjectPackage = async ({ projectPath }) => {
-  const projectPackage = await readProjectPackage({ projectPath })
+const getOptionsFromProjectPackage = async ({ projectDirectoryUrl }) => {
+  const projectPackage = await readProjectPackage({ projectDirectoryUrl })
   return {
     packageVersion: projectPackage.version,
   }

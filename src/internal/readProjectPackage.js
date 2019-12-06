@@ -1,7 +1,8 @@
 import { readFile } from "fs"
+import { resolveUrl, urlToFilePath } from "./urlUtils.js"
 
 export const readProjectPackage = async ({ projectDirectoryUrl }) => {
-  const packageFileUrl = resolveUrl('./package.json', projectDirectoryUrl)
+  const packageFileUrl = resolveUrl("./package.json", projectDirectoryUrl)
   const packageFilePath = urlToFilePath(packageFileUrl)
 
   let packageInProject
