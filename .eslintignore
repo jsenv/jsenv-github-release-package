@@ -1,0 +1,4 @@
+/.jsenv/
+/dist/
+/coverage/
+/node_modules/
