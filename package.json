@@ -47,6 +47,7 @@
     "@jsenv/codecov-upload": "2.0.0",
     "@jsenv/core": "10.0.0-alpha.11",
     "@jsenv/eslint-config": "11.3.0",
+    "@jsenv/github-release-package": "1.0.0",
     "@jsenv/node-module-import-map": "8.6.0",
     "@jsenv/prettier-config": "1.1.0",
     "@jsenv/prettier-check-project": "4.0.0",
