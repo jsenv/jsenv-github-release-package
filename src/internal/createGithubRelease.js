@@ -16,7 +16,7 @@ export const createGithubRelease = async ({
   })
   const response = await fetch(requestUrl, {
     headers: {
-      authorization: `token ${githubToken}`,
+      "authorization": `token ${githubToken}`,
       "content-length": Buffer.byteLength(body),
     },
     method: "POST",

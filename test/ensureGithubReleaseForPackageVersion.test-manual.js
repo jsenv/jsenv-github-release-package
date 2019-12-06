@@ -1,4 +1,4 @@
-import { ensureGithubReleaseForPackageVersion } from "../../index.js"
+import { ensureGithubReleaseForPackageVersion } from "../index.js"
 // import secrets from "../secrets.json"
 
 // Object.assign(process.env, secrets)
