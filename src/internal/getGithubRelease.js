@@ -1,6 +1,6 @@
 // https://developer.github.com/v3/git/refs/#get-a-single-reference
 
-const fetch = import.meta.require("node-fetch")
+import { fetchUrl } from "@jsenv/server"
 
 export const getGithubRelease = async ({
   githubToken,
@@ -9,7 +9,7 @@ export const getGithubRelease = async ({
   githubReleaseName,
 }) => {
   const requestUrl = `https://api.github.com/repos/${githubRepositoryOwner}/${githubRepositoryName}/git/ref/tags/${githubReleaseName}`
-  const response = await fetch(requestUrl, {
+  const response = await fetchUrl(requestUrl, {
     headers: {
       authorization: `token ${githubToken}`,
     },

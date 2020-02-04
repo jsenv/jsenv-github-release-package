@@ -1,6 +1,6 @@
 // https://developer.github.com/v3/git/tags/
 
-const fetch = import.meta.require("node-fetch")
+import { fetchUrl } from "@jsenv/server"
 
 export const createGithubRelease = async ({
   githubToken,
@@ -14,7 +14,7 @@ export const createGithubRelease = async ({
     ref: `refs/tags/${githubReleaseName}`,
     sha: githubSha,
   })
-  const response = await fetch(requestUrl, {
+  const response = await fetchUrl(requestUrl, {
     headers: {
       "authorization": `token ${githubToken}`,
       "content-length": Buffer.byteLength(body),

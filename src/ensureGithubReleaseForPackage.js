@@ -1,85 +1,76 @@
 import { createLogger } from "@jsenv/logger"
-import { hasScheme, filePathToUrl } from "./internal/urlUtils.js"
+import { assertAndNormalizeDirectoryUrl } from "@jsenv/util"
+import { createCancellationTokenForProcessSIGINT } from "@jsenv/cancellation"
+import { wrapAsyncFunction } from "./internal/wrapAsyncFunction.js"
 import { readProjectPackage } from "./internal/readProjectPackage.js"
 import { getGithubRelease } from "./internal/getGithubRelease.js"
 import { createGithubRelease } from "./internal/createGithubRelease.js"
 
-export const ensureGithubReleaseForPackage = async ({ projectDirectoryUrl, logLevel }) => {
-  const logger = createLogger({ logLevel })
-  logger.debug(
-    `autoReleaseOnGithub(${JSON.stringify({ projectDirectoryUrl, logLevel }, null, "  ")})`,
-  )
+export const ensureGithubReleaseForPackage = async ({
+  cancellationToken = createCancellationTokenForProcessSIGINT(),
+  logLevel,
+  projectDirectoryUrl,
+  updateProcessExitCode,
+}) => {
+  return wrapAsyncFunction(
+    async () => {
+      const logger = createLogger({ logLevel })
+      logger.debug(
+        `autoReleaseOnGithub(${JSON.stringify({ projectDirectoryUrl, logLevel }, null, "  ")})`,
+      )
 
-  projectDirectoryUrl = normalizeProjectDirectoryUrl(projectDirectoryUrl)
+      projectDirectoryUrl = assertAndNormalizeDirectoryUrl(projectDirectoryUrl)
 
-  const {
-    githubToken,
-    githubRepositoryOwner,
-    githubRepositoryName,
-    githubSha,
-  } = getOptionsFromGithubAction()
+      const {
+        githubToken,
+        githubRepositoryOwner,
+        githubRepositoryName,
+        githubSha,
+      } = getOptionsFromGithubAction()
 
-  logger.debug(`reading project package.json`)
-  const { packageVersion } = await getOptionsFromProjectPackage({ projectDirectoryUrl })
-  logger.debug(`${packageVersion} found in package.json`)
+      logger.debug(`reading project package.json`)
+      const { packageVersion } = await getOptionsFromProjectPackage({ projectDirectoryUrl })
+      cancellationToken.throwIfRequested()
+      logger.debug(`${packageVersion} found in package.json`)
 
-  logger.debug(`search release for ${packageVersion} on github`)
-  const githubReleaseName = `v${packageVersion}`
-  const existingRelease = await getGithubRelease({
-    githubToken,
-    githubRepositoryOwner,
-    githubRepositoryName,
-    githubReleaseName,
-  })
-  if (existingRelease) {
-    logger.info(
-      `${packageVersion} already released at ${generateReleaseUrl({
+      logger.debug(`search release for ${packageVersion} on github`)
+      const githubReleaseName = `v${packageVersion}`
+      const existingRelease = await getGithubRelease({
+        githubToken,
         githubRepositoryOwner,
         githubRepositoryName,
         githubReleaseName,
-      })}`,
-    )
-    return
-  }
+      })
+      cancellationToken.throwIfRequested()
+      if (existingRelease) {
+        logger.info(
+          `${packageVersion} already released at ${generateReleaseUrl({
+            githubRepositoryOwner,
+            githubRepositoryName,
+            githubReleaseName,
+          })}`,
+        )
+        return
+      }
 
-  logger.info(`creating release for ${packageVersion}`)
-  await createGithubRelease({
-    githubToken,
-    githubRepositoryOwner,
-    githubRepositoryName,
-    githubSha,
-    githubReleaseName,
-  })
-  logger.info(
-    `release created at ${generateReleaseUrl({
-      githubRepositoryOwner,
-      githubRepositoryName,
-      githubReleaseName,
-    })}`,
+      logger.info(`creating release for ${packageVersion}`)
+      await createGithubRelease({
+        githubToken,
+        githubRepositoryOwner,
+        githubRepositoryName,
+        githubSha,
+        githubReleaseName,
+      })
+      logger.info(
+        `release created at ${generateReleaseUrl({
+          githubRepositoryOwner,
+          githubRepositoryName,
+          githubReleaseName,
+        })}`,
+      )
+    },
+    { updateProcessExitCode },
   )
-  return
-}
-
-const normalizeProjectDirectoryUrl = (value) => {
-  if (value instanceof URL) {
-    value = value.href
-  }
-
-  if (typeof value === "string") {
-    const url = hasScheme(value) ? value : filePathToUrl(value)
-
-    if (!url.startsWith("file://")) {
-      throw new Error(`projectDirectoryUrl must starts with file://, received ${value}`)
-    }
-
-    return ensureTrailingSlash(value)
-  }
-
-  throw new TypeError(`projectDirectoryUrl must be a string or an url, received ${value}`)
-}
-
-const ensureTrailingSlash = (string) => {
-  return string.endsWith("/") ? string : `${string}/`
 }
 
 const generateReleaseUrl = ({ githubRepositoryOwner, githubRepositoryName, githubReleaseName }) => {
