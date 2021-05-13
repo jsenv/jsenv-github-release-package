@@ -1,75 +1,75 @@
 import { createLogger } from "@jsenv/logger"
-import {
-  assertAndNormalizeDirectoryUrl,
-  catchCancellation,
-  createCancellationTokenForProcess,
-} from "@jsenv/util"
+import { assertAndNormalizeDirectoryUrl } from "@jsenv/util"
+import { executeAsyncFunction, createCancellationTokenForProcess } from "@jsenv/cancellation"
+
 import { readProjectPackage } from "./internal/readProjectPackage.js"
 import { getGithubRelease } from "./internal/getGithubRelease.js"
 import { createGithubRelease } from "./internal/createGithubRelease.js"
 
 export const ensureGithubReleaseForPackage = async ({
-  cancellationToken = createCancellationTokenForProcess(),
   logLevel,
+  cancellationToken = createCancellationTokenForProcess(),
   projectDirectoryUrl,
   updateProcessExitCode = true,
 }) => {
-  return catchCancellation(async () => {
-    const logger = createLogger({ logLevel })
-    logger.debug(
-      `autoReleaseOnGithub(${JSON.stringify({ projectDirectoryUrl, logLevel }, null, "  ")})`,
-    )
+  return executeAsyncFunction(
+    async () => {
+      const logger = createLogger({ logLevel })
+      logger.debug(
+        `autoReleaseOnGithub(${JSON.stringify({ projectDirectoryUrl, logLevel }, null, "  ")})`,
+      )
 
-    projectDirectoryUrl = assertAndNormalizeDirectoryUrl(projectDirectoryUrl)
+      projectDirectoryUrl = assertAndNormalizeDirectoryUrl(projectDirectoryUrl)
 
-    const {
-      githubToken,
-      githubRepositoryOwner,
-      githubRepositoryName,
-      githubSha,
-    } = getOptionsFromGithubAction()
+      const { githubToken, githubRepositoryOwner, githubRepositoryName, githubSha } =
+        getOptionsFromGithubAction()
 
-    logger.debug(`reading project package.json`)
-    const { packageVersion } = await getOptionsFromProjectPackage({ projectDirectoryUrl })
-    cancellationToken.throwIfRequested()
-    logger.debug(`${packageVersion} found in package.json`)
+      logger.debug(`reading project package.json`)
+      const { packageVersion } = await getOptionsFromProjectPackage({ projectDirectoryUrl })
+      cancellationToken.throwIfRequested()
+      logger.debug(`${packageVersion} found in package.json`)
 
-    logger.debug(`search release for ${packageVersion} on github`)
-    const githubReleaseName = `v${packageVersion}`
-    const existingRelease = await getGithubRelease({
-      githubToken,
-      githubRepositoryOwner,
-      githubRepositoryName,
-      githubReleaseName,
-    })
-    cancellationToken.throwIfRequested()
-    if (existingRelease) {
+      logger.debug(`search release for ${packageVersion} on github`)
+      const githubReleaseName = `v${packageVersion}`
+      const existingRelease = await getGithubRelease({
+        githubToken,
+        githubRepositoryOwner,
+        githubRepositoryName,
+        githubReleaseName,
+      })
+      cancellationToken.throwIfRequested()
+      if (existingRelease) {
+        logger.info(
+          `${packageVersion} already released at ${generateReleaseUrl({
+            githubRepositoryOwner,
+            githubRepositoryName,
+            githubReleaseName,
+          })}`,
+        )
+        return
+      }
+
+      logger.info(`creating release for ${packageVersion}`)
+      await createGithubRelease({
+        githubToken,
+        githubRepositoryOwner,
+        githubRepositoryName,
+        githubSha,
+        githubReleaseName,
+      })
       logger.info(
-        `${packageVersion} already released at ${generateReleaseUrl({
+        `release created at ${generateReleaseUrl({
           githubRepositoryOwner,
           githubRepositoryName,
           githubReleaseName,
         })}`,
       )
-      return
-    }
-
-    logger.info(`creating release for ${packageVersion}`)
-    await createGithubRelease({
-      githubToken,
-      githubRepositoryOwner,
-      githubRepositoryName,
-      githubSha,
-      githubReleaseName,
-    })
-    logger.info(
-      `release created at ${generateReleaseUrl({
-        githubRepositoryOwner,
-        githubRepositoryName,
-        githubReleaseName,
-      })}`,
-    )
-  }).catch((e) => {
+    },
+    {
+      catchCancellation: true,
+      considerUnhandledRejectionsAsExceptions: true,
+    },
+  ).catch((e) => {
     if (updateProcessExitCode) {
       process.exitCode = 1
     }

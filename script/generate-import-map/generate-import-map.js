@@ -1,8 +1,17 @@
-const { generateImportMapForProjectPackage } = require("@jsenv/node-module-import-map")
-const jsenvConfig = require("../../jsenv.config.js")
+import { getImportMapFromProjectFiles, writeImportMapFile } from "@jsenv/node-module-import-map"
+import { projectDirectoryUrl, importMapFileRelativeUrl } from "../../jsenv.config.js"
 
-generateImportMapForProjectPackage({
-  ...jsenvConfig,
-  importMapFile: true,
-  jsConfigFile: true,
-})
+writeImportMapFile(
+  [
+    getImportMapFromProjectFiles({
+      projectDirectoryUrl,
+      runtime: "node",
+      dev: true,
+    }),
+  ],
+  {
+    projectDirectoryUrl,
+    importMapFileRelativeUrl,
+    jsConfigFile: true,
+  },
+)
