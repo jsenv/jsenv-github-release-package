@@ -9,5 +9,5 @@ executeTestPlan({
         launch: launchNode,
       },
     },
-  }
+  },
 })
