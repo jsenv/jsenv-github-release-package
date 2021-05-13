@@ -24,18 +24,11 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: npm install
-        run: |
-          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.GITHUB_TOKEN }}
-          npm install
+        run: npm install
       - name: code quality
         run: npm run eslint-check
-      - name: code format
-        run: npm run prettier-check
       - name: testing
         run: npm run test-with-coverage
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: upload coverage
         run: npm run upload-coverage
         env:
@@ -52,15 +45,13 @@ jobs:
         with:
           node-version: "16.1"
       - name: npm install
-        run: |
-          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.GITHUB_TOKEN }}
-          npm install
+        run: npm install
       - name: publish package
-        run: node ./.github/release/publish-package.js
+        run: node ./.github/workflows/ci/publish-package.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: ensure github release
-        run: node ./.github/release/ensure-github-release-for-package.js
+        run: node ./.github/workflows/ci/ensure-github-release-for-package.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
